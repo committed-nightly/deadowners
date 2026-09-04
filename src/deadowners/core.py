@@ -165,7 +165,11 @@ def check(
         else:
             report.live_rules += 1
 
+    # The file GitHub actually reads comes first, in line order. Sorting the
+    # whole list at the end would order by filename instead, which puts the
+    # groups in the wrong place as soon as two CODEOWNERS files share a name.
     report.findings.extend(_bad_pattern_findings(parsed.path, parsed.bad_lines))
+    report.findings.sort(key=lambda f: f.line)
 
     for other in ignored_files:
         report.findings.append(
@@ -177,9 +181,13 @@ def check(
                 file=other.path,
             )
         )
-        report.findings.extend(_bad_pattern_findings(other.path, other.bad_lines))
+        report.findings.extend(
+            sorted(
+                _bad_pattern_findings(other.path, other.bad_lines),
+                key=lambda f: f.line,
+            )
+        )
 
-    report.findings.sort(key=lambda f: (f.file != parsed.path, f.file, f.line))
     return report
 
 

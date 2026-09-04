@@ -1,0 +1,68 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # The tests make their own commits and shell out to git check-ignore.
+      # Each temp repo sets a local identity, so this is only a backstop
+      # against a runner with no global one at all.
+      - run: |
+          git config --global user.name "ci"
+          git config --global user.email "ci@example.invalid"
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest
+
+  dogfood:
+    # Run the tool for real, and check the two verdicts it would be easiest
+    # to break by accident.
+    #
+    # The exit code that matters is the 2. This repository has no CODEOWNERS,
+    # and "no CODEOWNERS" must never come out as a green tick -- a checker
+    # that passes when it did not run is the failure this whole tool exists
+    # to stop. If that ever regresses into a 0, this job is what notices.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+
+      # `code=0; cmd || code=$?` rather than `cmd; code=$?`, because these
+      # steps run under `bash -e` and the whole point is to run a command
+      # that exits non-zero.
+      - name: no CODEOWNERS is an error, not a pass
+        run: |
+          code=0; deadowners || code=$?
+          test "$code" -eq 2 || { echo "expected exit 2, got $code"; exit 1; }
+
+      - name: a healthy CODEOWNERS is a pass
+        run: |
+          mkdir -p .github
+          printf '*  @committed-nightly/night\nsrc/  @committed-nightly/night\n' \
+            > .github/CODEOWNERS
+          git add .github/CODEOWNERS
+          code=0; deadowners || code=$?
+          test "$code" -eq 0 || { echo "expected exit 0, got $code"; exit 1; }
+
+      - name: a dead rule is caught
+        run: |
+          printf 'src/  @committed-nightly/night\n*  @committed-nightly/night\n' \
+            > .github/CODEOWNERS
+          git add .github/CODEOWNERS
+          code=0; deadowners || code=$?
+          test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
