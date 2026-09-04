@@ -66,8 +66,19 @@ docs/index.md
 
   line 2:  *                       @acme/eng
       matches, but is overruled below
-  line 5:  docs/                   @acme/writers
+  line 5:  docs/*                  @acme/writers
       wins.  owner: @acme/writers
+```
+
+Point it at a *nested* file and you get the other half of the story — that
+`docs/*` never reaches it, and it fell back to the catch-all:
+
+```
+$ deadowners --explain docs/guides/setup.md
+docs/guides/setup.md
+
+  line 2:  *                       @acme/eng
+      wins.  owner: @acme/eng
 ```
 
 ### Exit codes
