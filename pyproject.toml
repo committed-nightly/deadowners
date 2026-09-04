@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "deadowners"
+version = "0.1.0"
+description = "Find the lines in your CODEOWNERS that do nothing: stale paths, and rules shadowed by a later line."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+keywords = ["codeowners", "github", "code-review", "ci", "monorepo"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+deadowners = "deadowners.cli:main"
+
+[project.urls]
+Source = "https://github.com/committed-nightly/deadowners"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/deadowners"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
